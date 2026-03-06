@@ -66,7 +66,7 @@ class Task(BaseEntity):
     )
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    server_id: Mapped[int | None] = mapped_column(ForeignKey("servers.id"), nullable=True)
+    server_uid: Mapped[int | None] = mapped_column(ForeignKey("servers.uid"), nullable=True)
     server: Mapped[Server | None] = relationship(back_populates="tasks")
 
     __table_args__ = (

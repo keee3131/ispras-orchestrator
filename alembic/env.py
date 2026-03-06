@@ -6,8 +6,8 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
-from app.core.config import settings
-from database.base import DeclarativeBase
+from app.config import settings
+from database.base import Base
 import database.models
 
 # this is the Alembic Config object, which provides
@@ -29,7 +29,7 @@ if config.config_file_name is not None:
 # target_metadata = mymodel.Base.metadata
 
 
-target_metadata = DeclarativeBase.metadata
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
