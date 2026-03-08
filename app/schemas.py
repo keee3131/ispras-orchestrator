@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from database.models import TaskStatus
+from database.models import TaskStatus, PolicyType
 
 
 class ServerCreate(BaseModel):
@@ -30,7 +30,7 @@ class TaskCreate(BaseModel):
     ram_req: int = Field(ge=0)
     gpu_req: int = Field(ge=0)
     ttl_seconds: int | None = Field(default=None, gt=0)
-    policy: Literal["first_fit", "best_fit"] = "best_fit"
+    policy: Optional[PolicyType] = "best_fit"
 
 
 class TaskRead(BaseModel):
@@ -42,5 +42,5 @@ class TaskRead(BaseModel):
     gpu_req: int
     status: TaskStatus
     created_at: datetime
-    expires_at: datetime | None
-    server_uid: str | None
+    expires_at: Optional[datetime] = None   
+    server_uid: Optional[str] = None

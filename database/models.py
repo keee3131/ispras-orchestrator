@@ -1,4 +1,4 @@
-import enum
+from enum import StrEnum
 from datetime import datetime
 
 from sqlalchemy import (
@@ -16,11 +16,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database.base import BaseEntity
 
 
-class TaskStatus(str, enum.Enum):
+class TaskStatus(StrEnum):
     RUNNING = "RUNNING"
     EXPIRED = "EXPIRED"
     STOPPED = "STOPPED"
     FAILED = "FAILED"
+    
+class PolicyType(StrEnum):
+    FIRST_FIT = "FIRST_FIT"
+    BEST_FIT = "BEST_FIT"
 
 
 class Server(BaseEntity):
@@ -34,9 +38,7 @@ class Server(BaseEntity):
     ram_free: Mapped[int] = mapped_column(Integer, nullable=False)
     gpu_free: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     tasks: Mapped[list["Task"]] = relationship(back_populates="server")
 
@@ -61,9 +63,7 @@ class Task(BaseEntity):
         Enum(TaskStatus, name="task_status"), nullable=False, default=TaskStatus.RUNNING
     )
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     server_uid: Mapped[int | None] = mapped_column(ForeignKey("servers.uid"), nullable=True)

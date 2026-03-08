@@ -27,16 +27,12 @@ async def create_server(db: AsyncSession, payload: ServerCreate) -> Server:
 
 
 async def list_servers(db: AsyncSession) -> list[Server]:
-    result = await db.execute(
-        select(Server).order_by(Server.created_at.asc(), Server.uid.asc())
-    )
+    result = await db.execute(select(Server).order_by(Server.created_at.asc(), Server.uid.asc()))
     return list(result.scalars().all())
 
 
 async def list_tasks(db: AsyncSession) -> list[Task]:
-    result = await db.execute(
-        select(Task).order_by(Task.created_at.desc(), Task.uid.asc())
-    )
+    result = await db.execute(select(Task).order_by(Task.created_at.desc(), Task.uid.asc()))
     return list(result.scalars().all())
 
 
@@ -125,11 +121,7 @@ async def expire_due_tasks(db: AsyncSession, batch_size: int = 100) -> int:
             if task.server_uid is None:
                 continue
 
-            server_result = await db.execute(
-                select(Server)
-                .where(Server.uid == task.server_uid)
-                .with_for_update()
-            )
+            server_result = await db.execute(select(Server).where(Server.uid == task.server_uid).with_for_update())
             server = server_result.scalar_one_or_none()
 
             if server is None:

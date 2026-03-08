@@ -5,7 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import settings
+from app.config import Settings
 from database.session import AsyncSessionLocal, get_db
 from app.schemas import ServerCreate, ServerRead, TaskCreate, TaskRead
 from app.service import (
@@ -17,7 +17,7 @@ from app.service import (
     place_task,
 )
 
-
+settings = Settings()
 scheduler = AsyncIOScheduler(timezone="UTC")
 
 
