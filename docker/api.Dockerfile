@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir --upgrade pip \
 
 COPY app ./app  
 COPY database ./database
+COPY tests ./tests
 COPY alembic.ini .
 COPY alembic ./alembic
 

@@ -3,8 +3,9 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Server, Task, TaskStatus
+from database.models import Server, Task, TaskStatus, PolicyType
 from app.schemas import ServerCreate, TaskCreate
+
 
 
 class NoCapacityError(Exception):
@@ -49,7 +50,7 @@ def build_server_candidate_stmt(payload: TaskCreate):
         Server.gpu_free >= payload.gpu_req,
     )
 
-    if payload.policy == "first_fit":
+    if payload.policy == PolicyType.FIRST_FIT:
         stmt = stmt.order_by(Server.created_at.asc(), Server.uid.asc())
     else:
         residual_score = (

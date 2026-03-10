@@ -19,6 +19,8 @@ services:
     build:
       context: .
       dockerfile: docker/api.Dockerfile
+    volumes: 
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DATABASE_URL: ${DATABASE_URL}
       TTL_POLL_SECONDS: ${TTL_POLL_SECONDS}

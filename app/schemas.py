@@ -29,8 +29,8 @@ class TaskCreate(BaseModel):
     cpu_req: int = Field(ge=0)
     ram_req: int = Field(ge=0)
     gpu_req: int = Field(ge=0)
-    ttl_seconds: int | None = Field(default=None, gt=0)
-    policy: Optional[PolicyType] = "best_fit"
+    ttl_seconds: Optional[int] = Field(default=None, gt=0)
+    policy: Optional[PolicyType] = PolicyType.BEST_FIT
 
 
 class TaskRead(BaseModel):

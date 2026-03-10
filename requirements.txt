@@ -7,3 +7,7 @@ apscheduler
 pydantic-settings
 pytest
 ksuid
+httpx
+pytest-asyncio
+testcontainers
+psycopg2-binary
