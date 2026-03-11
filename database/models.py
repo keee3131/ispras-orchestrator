@@ -21,10 +21,16 @@ class TaskStatus(StrEnum):
     EXPIRED = "EXPIRED"
     STOPPED = "STOPPED"
     FAILED = "FAILED"
+    WAITING = "WAITING"
     
 class PolicyType(StrEnum):
     FIRST_FIT = "FIRST_FIT"
     BEST_FIT = "BEST_FIT"
+
+
+class ServerStatus(StrEnum):
+    RUNNING = "RUNNING"
+    STOPPED = "STOPPED"    
 
 
 class Server(BaseEntity):
@@ -39,6 +45,9 @@ class Server(BaseEntity):
     gpu_free: Mapped[int] = mapped_column(Integer, nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus, name="task_status"), nullable=False, default=TaskStatus.RUNNING
+    )
 
     tasks: Mapped[list["Task"]] = relationship(back_populates="server")
 
@@ -59,8 +68,8 @@ class Task(BaseEntity):
     ram_req: Mapped[int] = mapped_column(Integer, nullable=False)
     gpu_req: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, name="task_status"), nullable=False, default=TaskStatus.RUNNING
+    status: Mapped[ServerStatus] = mapped_column(
+        Enum(ServerStatus, name="server_status"), nullable=False, default=ServerStatus.RUNNING
     )
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

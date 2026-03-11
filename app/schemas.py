@@ -3,7 +3,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from database.models import TaskStatus, PolicyType
+from database.models import TaskStatus, PolicyType, ServerStatus
 
 
 class ServerCreate(BaseModel):
@@ -22,6 +22,7 @@ class ServerRead(BaseModel):
     cpu_free: int
     ram_free: int
     gpu_free: int
+    status: ServerStatus
     created_at: datetime
 
 

@@ -3,9 +3,8 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from database.models import Server, Task, TaskStatus, PolicyType
+from database.models import Server, Task, TaskStatus, PolicyType, ServerStatus
 from app.schemas import ServerCreate, TaskCreate
-
 
 
 class NoCapacityError(Exception):
@@ -20,6 +19,7 @@ async def create_server(db: AsyncSession, payload: ServerCreate) -> Server:
         cpu_free=payload.cpu_total,
         ram_free=payload.ram_total,
         gpu_free=payload.gpu_total,
+        status=payload.RUNNING,
     )
     db.add(server)
     await db.commit()
@@ -71,11 +71,22 @@ async def place_task(db: AsyncSession, payload: TaskCreate) -> Task:
     expires_at = build_expires_at(payload.ttl_seconds)
 
     async with db.begin():
-        result = await db.execute(build_server_candidate_stmt(payload))
+        result = await db.execute(build_server_candidate_stmt(payload).where(Server.status == ServerStatus.RUNNING))
         server = result.scalar_one_or_none()
 
         if server is None:
-            raise NoCapacityError()
+            task = Task(
+                cpu_req=payload.cpu_req,
+                ram_req=payload.ram_req,
+                gpu_req=payload.gpu_req,
+                status=TaskStatus.WAITING,
+                expires_at=expires_at,
+                server_uid=None,
+            )
+            db.add(task)
+            await db.flush()
+            await db.refresh(task)
+            return task
 
         server.cpu_free -= payload.cpu_req
         server.ram_free -= payload.ram_req
@@ -93,8 +104,7 @@ async def place_task(db: AsyncSession, payload: TaskCreate) -> Task:
         db.add(task)
         await db.flush()
         await db.refresh(task)
-
-    return task
+        return task
 
 
 async def expire_due_tasks(db: AsyncSession, batch_size: int = 100) -> int:
@@ -119,17 +129,82 @@ async def expire_due_tasks(db: AsyncSession, batch_size: int = 100) -> int:
         for task in tasks:
             task.status = TaskStatus.EXPIRED
 
-            if task.server_uid is None:
-                continue
+            if task.server_uid is not None:
+                server_result = await db.execute(select(Server).where(Server.uid == task.server_uid).with_for_update())
+                server = server_result.scalar_one_or_none()
+                if server is not None:
+                    server.cpu_free += task.cpu_req
+                    server.ram_free += task.ram_req
+                    server.gpu_free += task.gpu_req
+                    task.server_uid = None
 
-            server_result = await db.execute(select(Server).where(Server.uid == task.server_uid).with_for_update())
-            server = server_result.scalar_one_or_none()
+        return len(tasks)
 
-            if server is None:
-                continue
 
+async def stop_task(db: AsyncSession, task_uid: str) -> Task | None:
+    async with db.begin():
+        task = await db.get(Task, task_uid)
+        if task is None:
+            return None
+        if task.status == TaskStatus.RUNNING:
+            if task.server_uid is not None:
+                server = await db.get(Server, task.server_uid)
+                if server is not None:
+                    server.cpu_free += task.cpu_req
+                    server.ram_free += task.ram_req
+                    server.gpu_free += task.gpu_req
+            task.server_uid = None
+        task.status = TaskStatus.STOPPED
+        return task
+
+
+async def stop_server(db: AsyncSession, server_uid: str) -> Server | None:
+    async with db.begin():
+        server = await db.get(Server, server_uid)
+        if server is None:
+            return None
+        server.status = ServerStatus.STOPPED
+        result = await db.execute(
+            select(Task).where(Task.server_uid == server_uid, Task.status == TaskStatus.RUNNING).with_for_update()
+        )
+        tasks = result.scalars().all()
+        for task in tasks:
             server.cpu_free += task.cpu_req
             server.ram_free += task.ram_req
             server.gpu_free += task.gpu_req
+            task.server_uid = None
+            task.status = TaskStatus.QUEUED
+        return server       
 
-        return len(tasks)
+
+async def schedule_waiting_tasks(db: AsyncSession, batch_size: int = 100) -> int:
+    async with db.begin():
+        stmt = (
+            select(Task)
+            .where(Task.status == TaskStatus.QUEUED)
+            .order_by(Task.created_at.asc(), Task.uid.asc())
+            .limit(batch_size)
+            .with_for_update(skip_locked=True)
+        )
+        result = await db.execute(stmt)
+        queued_tasks = list(result.scalars().all())
+        scheduled_count = 0
+        for task in queued_tasks:
+            class _Payload:
+                cpu_req = task.cpu_req
+                ram_req = task.ram_req
+                gpu_req = task.gpu_req
+                policy = PolicyType.BEST_FIT
+            result_s = await db.execute(
+                build_server_candidate_stmt(_Payload).where(Server.status == ServerStatus.RUNNING)
+            )
+            server = result_s.scalar_one_or_none()
+            if server is None:
+                continue
+            server.cpu_free -= task.cpu_req
+            server.ram_free -= task.ram_req
+            server.gpu_free -= task.gpu_req
+            task.server_uid = server.uid
+            task.status = TaskStatus.RUNNING
+            scheduled_count += 1
+        return scheduled_count

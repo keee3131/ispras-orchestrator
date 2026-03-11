@@ -5,6 +5,7 @@ class SettingsConfig(BaseConfig):
     env_nested_delimiter = "__"
     env_file = (".env.local", ".env")
     env_file_encoding = "utf-8"
+    extra = "ignore"
 
 class Settings(BaseSettings):
     database_url: str

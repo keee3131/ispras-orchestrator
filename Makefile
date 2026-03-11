@@ -17,6 +17,3 @@ makemigration:
 
 test:
 	docker compose exec api pytest -q
-
-demo:
-	bash scripts/demo.sh
