@@ -34,7 +34,7 @@ async def run_scheduler_job():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     scheduler.add_job(
-        run_expire_job,
+        run_scheduler_job,
         trigger="interval",
         seconds=settings.ttl_poll_seconds,
         id="task_scheduler",
@@ -106,5 +106,5 @@ async def delete_server_route(server_uid: str, db: AsyncSession = Depends(get_db
     server = await stop_server(db, server_uid)
     if server is None:
         raise HTTPException(status_code=404, detail="Server not found")
-    await schedule_queued_tasks(db, batch_size=settings.expire_batch_size)
+    await schedule_waiting_tasks(db, batch_size=settings.expire_batch_size)
     return server

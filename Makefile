@@ -1,4 +1,4 @@
-.PHONY: up down logs migrate makemigration test demo
+.PHONY: up down logs migrate makemigration test
 
 up:
 	docker compose up --build -d

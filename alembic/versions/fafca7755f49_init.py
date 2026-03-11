@@ -41,7 +41,7 @@ def upgrade() -> None:
     sa.Column('cpu_req', sa.Integer(), nullable=False),
     sa.Column('ram_req', sa.Integer(), nullable=False),
     sa.Column('gpu_req', sa.Integer(), nullable=False),
-    sa.Column('status', sa.Enum('RUNNING', 'EXPIRED', 'STOPPED', 'FAILED', name='task_status'), nullable=False),
+    sa.Column('status', sa.Enum('RUNNING', 'EXPIRED', 'STOPPED', 'FAILED', 'WAITING', name='task_status'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('server_uid', sa.String(length=50), nullable=True),

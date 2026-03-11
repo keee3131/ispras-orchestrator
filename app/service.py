@@ -19,7 +19,7 @@ async def create_server(db: AsyncSession, payload: ServerCreate) -> Server:
         cpu_free=payload.cpu_total,
         ram_free=payload.ram_total,
         gpu_free=payload.gpu_total,
-        status=payload.RUNNING,
+        status=ServerStatus.RUNNING,
     )
     db.add(server)
     await db.commit()
@@ -173,7 +173,7 @@ async def stop_server(db: AsyncSession, server_uid: str) -> Server | None:
             server.ram_free += task.ram_req
             server.gpu_free += task.gpu_req
             task.server_uid = None
-            task.status = TaskStatus.QUEUED
+            task.status = TaskStatus.WAITING
         return server       
 
 
@@ -181,15 +181,15 @@ async def schedule_waiting_tasks(db: AsyncSession, batch_size: int = 100) -> int
     async with db.begin():
         stmt = (
             select(Task)
-            .where(Task.status == TaskStatus.QUEUED)
+            .where(Task.status == TaskStatus.WAITING)
             .order_by(Task.created_at.asc(), Task.uid.asc())
             .limit(batch_size)
             .with_for_update(skip_locked=True)
         )
         result = await db.execute(stmt)
-        queued_tasks = list(result.scalars().all())
+        waiting_tasks = list(result.scalars().all())
         scheduled_count = 0
-        for task in queued_tasks:
+        for task in waiting_tasks:
             class _Payload:
                 cpu_req = task.cpu_req
                 ram_req = task.ram_req
